@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario Hospital (Firebase)</title>
+
+<style>
+body { font-family:'Segoe UI'; background:#eef2f7; margin:0; }
+header { background:#007bff; color:white; padding:15px; text-align:center; }
+.container { max-width:1000px; margin:30px auto; background:white; padding:20px; border-radius:10px; }
+.top-bar { display:flex; gap:10px; flex-wrap:wrap; }
+input { padding:8px; }
+button { padding:8px 12px; cursor:pointer; }
+.btn-add { background:#28a745; color:white; }
+table { width:100%; margin-top:20px; border-collapse:collapse; }
+th, td { padding:10px; border-bottom:1px solid #ddd; }
+th { background:#333; color:white; }
+.alert { margin-bottom:10px; padding:10px; border-radius:5px; }
+.ok { background:#28a745; color:white; }
+</style>
+
+<!-- ✅ FIREBASE BIEN PUESTO -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+</head>
+<body>
+
+<header>🏥 Inventario Hospital (Firebase)</header>
+
+<div class="container">
+<div id="mensaje"></div>
+
+<div class="top-bar">
+<input id="nombre" placeholder="Nombre">
+<input id="cantidad" type="number" placeholder="Cantidad">
+<button class="btn-add" onclick="agregarProducto()">Añadir</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Producto</th>
+<th>Cantidad</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDSv2CHZF9GBuAPR-ue02U_uLDwgrBrxjc",
+  authDomain: "inventario-hospital.firebaseapp.com",
+  projectId: "inventario-hospital-74eaa",
+  storageBucket: "inventario-hospital-74eaa.appspot.com",
+  messagingSenderId: "321807456076",
+  appId: "1:321807456076:web:b62ff1122fb8eb83ab8061"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function cargarDatos(){
+const tabla=document.getElementById('tabla');
+tabla.innerHTML="";
+
+db.collection("productos").get().then(snapshot => {
+  snapshot.forEach(doc => {
+    const item = doc.data();
+    const id = doc.id;
+
+    const fila=document.createElement('tr');
+    fila.innerHTML=`
+      <td>${item.nombre}</td>
+      <td>${item.cantidad}</td>
+      <td>
+        <button onclick="editar('${id}', '${item.nombre}', ${item.cantidad})">Editar</button>
+        <button onclick="eliminar('${id}')">Eliminar</button>
+      </td>
+    `;
+
+    if(item.cantidad<=3){
+      fila.style.background='#ffe5e5';
+    }
+
+    tabla.appendChild(fila);
+  });
+});
+}
+
+function agregarProducto(){
+const nombre=document.getElementById('nombre').value;
+const cantidad=parseInt(document.getElementById('cantidad').value);
+
+if(!nombre||isNaN(cantidad)){
+alert('Faltan datos');
+return;
+}
+
+db.collection("productos").add({nombre,cantidad})
+.then(()=>{
+  mostrarMensaje(`✅ ${nombre} guardado`);
+  cargarDatos();
+});
+
+limpiar();
+}
+
+function eliminar(id){
+if(confirm('¿Eliminar producto?')){
+  db.collection("productos").doc(id).delete()
+  .then(()=>{
+    mostrarMensaje('🗑️ Eliminado');
+    cargarDatos();
+  });
+}
+}
+
+function editar(id, nombreActual, cantidadActual){
+const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
+const nuevaCantidad = prompt('Nueva cantidad:', cantidadActual);
+
+if(!nuevoNombre || isNaN(parseInt(nuevaCantidad))){
+  alert('Datos inválidos');
+  return;
+}
+
+db.collection("productos").doc(id).update({
+  nombre: nuevoNombre,
+  cantidad: parseInt(nuevaCantidad)
+}).then(()=>{
+  mostrarMensaje('✏️ Actualizado');
+  cargarDatos();
+});
+}
+
+function limpiar(){
+document.getElementById('nombre').value='';
+document.getElementById('cantidad').value='';
+}
+
+function mostrarMensaje(texto){
+const div=document.getElementById('mensaje');
+div.className='alert ok';
+div.innerText=texto;
+setTimeout(()=>div.innerText='',2000);
+}
+
+cargarDatos();
+</script>
+
+</body>
+</html>
